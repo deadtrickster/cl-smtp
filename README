@@ -26,9 +26,9 @@ Send email.
 Returns nil or error with message
 
  arguments:
-  - host (String)                  : hostname or ip-adress of the smtpserver
-  - from (String)                  : email adress 
-  - to (String or List of Strings) : email adress 
+  - host (String)                  : hostname or ip-address of the smtpserver
+  - from (String)                  : email address 
+  - to (String or List of Strings) : email address 
   - subject (String)               : subject text
   - message (String)               : message body
  keywords:
@@ -125,7 +125,7 @@ Returns cl-smtp:attachment
 For debug output set the parameter *debug* to t (default nil)
 (setf cl-smtp::*debug* t)
 
-CL-SMTP set automaticly the Date header and the X-Mailer header.
+CL-SMTP set automatically the Date header and the X-Mailer header.
 X-Mailer: cl-smtp ((lisp-implementation-type) (lisp-implementation-version))
 
 You can change this with setting the parameter *x-mailer*
