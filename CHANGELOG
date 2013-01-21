@@ -1,4 +1,11 @@
-Version 20130118
+Version 20130121.1
+2013.01.21
+New version in cl-smtp.asd
+Add patch to improve the spelling a bit in README for cl-smtp.
+Thanks Michael Stevens <mstevens@etla.org>
+Change cl-smtp.asd, CHANGELOG, README
+
+Version 20130118.1
 2013.01.18
 Add string-has-non-ascii, rfc2045-q-encode-string-to-stream,
 to send quoted-printable messages
