@@ -14,6 +14,51 @@
 (defun get-component-pathname ()
   (asdf:component-pathname (asdf:find-system "cl-smtp")))
 
+
+
+(define-cl-smtp-test "rfc2045-q-encode-string-to-stream-1" ()
+  (let* ((str "öüäÖÜÄß")
+         (qstr (with-output-to-string (s)
+                 (rfc2045-q-encode-string-to-stream 
+                  str s :external-format :utf-8))))
+    (assert qstr)
+    (assert (string-equal qstr "=C3=B6=C3=BC=C3=A4=C3=96=C3=9C=C3=84=C3=9F"))))
+
+(define-cl-smtp-test "rfc2045-q-encode-string-to-stream-2" ()
+  (let* ((str "öüäÖÜÄß")
+         (qstr (with-output-to-string (s)
+                 (rfc2045-q-encode-string-to-stream 
+                  str s :external-format :latin-1))))
+    (assert qstr)
+    (assert (string-equal qstr "=F6=FC=E4=D6=DC=C4=DF"))))
+
+(define-cl-smtp-test "rfc2045-q-encode-string-to-stream-3" ()
+  (let* ((str "check if #\= encoded")
+         (qstr (with-output-to-string (s)
+                 (rfc2045-q-encode-string-to-stream 
+                  str s :external-format :latin-1))))
+    (assert qstr)
+    (assert (string-equal qstr "check if #\=3D encoded"))))
+
+(define-cl-smtp-test "rfc2045-q-encode-string-to-stream-4" ()
+  (let* ((str "Müde vom Durchwandern öder Letternwüsten, voll leerer Hirngeburten, in anmaaßendsten Wortnebeln ; überdrüssig ästhetischer Süßler wie grammatischer Wässerer ; entschloß ich mich : Alles, was je schrieb, in Liebe und Haß, als immerfort mitlebend zu behandeln !")
+         (qstr (with-output-to-string (s)
+                 (rfc2045-q-encode-string-to-stream 
+                  str s :external-format :latin-1 :columns 64))))
+    (assert qstr)
+    (assert (string-equal qstr "M=FCde vom Durchwandern =F6der Letternw=FCsten, voll leerer Hirngeburt=
+en, in anmaa=DFendsten Wortnebeln ; =FCberdr=FCssig =E4sthetischer S=FC=DFle=
+r wie grammatischer W=E4sserer ; entschlo=DF ich mich : Alles, was j=
+e schrieb, in Liebe und Ha=DF, als immerfort mitlebend zu behandel=
+n !"
+))))
+
+(define-cl-smtp-test "string-has-non-ascii-1" ()
+  (assert (string-has-non-ascii "test Ü ende")))
+
+(define-cl-smtp-test "string-has-non-ascii-2" ()
+  (assert (not (string-has-non-ascii "test ende"))))
+
 (define-cl-smtp-test "rfc2045-q-encode-string-utf-8" ()
   (let* ((str "öüäÖÜÄß")
          (qstr (rfc2045-q-encode-string str :external-format :utf-8)))

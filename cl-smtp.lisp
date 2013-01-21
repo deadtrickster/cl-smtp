@@ -56,10 +56,19 @@
       (mask str))
     resultstr))
 
-(defun string-to-base64-string (str)
-  (declare (ignorable str))
-  #+allegro (excl:string-to-base64-string str :wrap-at-column nil)
-  #-allegro (cl-base64:string-to-base64-string str))
+(defun string-to-base64-string (str &key (external-format :utf-8)
+                                (columns 80))
+  (let ((exformat (flex:make-external-format external-format)))
+  #+allegro (excl:usb8-array-to-base64-string 
+             (flex:string-to-octets str :external-format exformat)
+             :wrap-at-column columns)
+  #-allegro (cl-base64:usb8-array-to-base64-string 
+             (flex:string-to-octets str :external-format exformat)
+             :columns columns)))
+
+(defun string-has-non-ascii (str)
+  (loop for c across str
+     when (< 127 (char-code c)) do (return t)))
 
 (defun rfc2045-q-encode-string (str &key (external-format :utf-8))
   (let ((line-has-non-ascii nil)
@@ -75,7 +84,7 @@
               (loop for byte across (flex:string-to-octets 
                                      (make-string 1 :initial-element c)
                                      :external-format exformat)
-                 do (format s "=~2,'0X" byte)))
+                 do (format s "~:@(=~2,'0X~)" byte)))
              (t 
               (when line-has-non-ascii
                 (format s "?=")
@@ -83,6 +92,42 @@
               (format s "~C" c))))
       (when line-has-non-ascii
         (format s "?=")))))
+
+(defun rfc2045-q-encode-string-to-stream (str stream 
+                                          &key (external-format :utf-8) 
+                                          (columns 74))
+  (let ((exformat (flex:make-external-format external-format))
+        (last-line-break 0)
+        (len (length str)))
+    (loop for c across str
+          for n from 0 to len 
+          for column = (- n last-line-break)
+          for nc = (when (< (+ n 1) len) (elt str (+ n 1)))
+       do
+         (when (>= column columns)
+           (write-char #\= stream)
+           (write-blank-line stream)
+           (setf last-line-break n))
+         (cond
+           ((char= c #\NewLine)
+            (setf last-line-break n)
+            (write-char c stream))
+           ((or (char= c #\Space)
+                (char= c #\Tab))
+            (if (char= nc #\NewLine)
+                (format stream "~:@(=~2,'0X~)" (char-code c))
+                (write-char c stream)))
+           ((or (< 127 (char-code c))
+                (> 33 (char-code c))
+                (char= c #\=))
+            (loop for byte across (flex:string-to-octets 
+                                     (make-string 1 :initial-element c)
+                                     :external-format exformat)
+                 do (format stream "~:@(=~2,'0X~)" byte)))
+           (t
+            (write-char c stream))
+           ))
+    ))
 
 (defun substitute-return-newline (str)
   "Replace all occurences of \r\n in STR with spaces"
@@ -178,7 +223,8 @@
 (defun send-email (host from to subject message 
 		   &key ssl (port (if (eq :tls ssl) 465 25)) cc bcc reply-to extra-headers
 		   html-message display-name authentication
-		   attachments (buffer-size 256) envelope-sender (external-format :utf-8))
+		   attachments (buffer-size 256) envelope-sender 
+                   (external-format :utf-8) local-hostname)
   (send-smtp host from (check-arg to "to") subject (mask-dot message)
 	     :port port :cc (check-arg cc "cc") :bcc (check-arg bcc "bcc")
 	     :reply-to reply-to 
@@ -192,7 +238,8 @@
 			      256)
 	     :envelope-sender (or envelope-sender from)
              :external-format external-format
-	     :ssl ssl))
+	     :ssl ssl
+             :local-hostname (or local-hostname (usocket::get-host-name))))
 
 (defun send-smtp (host from to subject message
                   &key ssl (port (if (eq :tls ssl) 465 25)) cc bcc
@@ -403,6 +450,9 @@
                               display-name attachments buffer-size
                               (external-format :utf-8))
   (let* ((boundary (make-random-boundary))
+         (message-transfer-encoding (when (string-has-non-ascii message)
+                                      "quoted-printable"))
+                                      
          (html-boundary (if (and attachments html-message)
                             (make-random-boundary)
                             boundary))
@@ -415,7 +465,8 @@
                        :cc cc
                        :reply-to reply-to
                        :display-name display-name 
-                       :extra-headers extra-headers :subject subject)
+                       :extra-headers extra-headers :subject subject
+                       :external-format external-format)
     (when (or attachments html-message)
       (send-multipart-headers stream
                               :attachment-boundary (when attachments boundary) 
@@ -436,31 +487,52 @@
              (write-blank-line stream)
              (generate-message-header 
               stream :boundary html-boundary :content-type content-type 
+              :content-transfer-encoding message-transfer-encoding
               :content-disposition "inline" :include-blank-line? nil)))
           (attachments 
            (generate-message-header 
             stream :boundary boundary 
             :content-type content-type :content-disposition "inline"
+            :content-transfer-encoding message-transfer-encoding
             :include-blank-line? nil))
           (html-message
            (generate-message-header 
             stream :boundary html-boundary :content-type content-type 
+            :content-transfer-encoding message-transfer-encoding
             :content-disposition "inline"))
           (t 
-           (generate-message-header stream :content-type content-type
-                                    :include-blank-line? nil)))
+           (generate-message-header 
+            stream :content-type content-type
+            :content-transfer-encoding message-transfer-encoding
+            :include-blank-line? nil)))
     (write-blank-line stream)
-    (write-to-smtp stream message)
+    (if message-transfer-encoding
+        (progn
+          (print-debug (format nil "to server body quoted-printable: ~A"
+                               message))
+          (rfc2045-q-encode-string-to-stream message stream 
+                                             :external-format external-format))
+        (write-to-smtp stream message))
+    (write-blank-line stream)
     (write-blank-line stream)
     ;;---------- Send  Html text if needed -------------------------
     (when html-message
-      (generate-message-header 
-       stream :boundary html-boundary 
-       :content-type (format nil "text/html; charset=~S" 
-                             (string-upcase (symbol-name external-format)))
-       :content-disposition "inline")
-      (write-to-smtp stream html-message)
-      (send-end-marker stream html-boundary))
+      (let ((non-ascii-p (string-has-non-ascii html-message)))
+        (generate-message-header 
+         stream :boundary html-boundary 
+         :content-type (format nil "text/html; charset=~S" 
+                               (string-upcase (symbol-name external-format)))
+         :content-transfer-encoding (when non-ascii-p "quoted-printable")
+         :content-disposition "inline")
+        (if non-ascii-p
+            (progn
+              (print-debug 
+               (format nil "to server html-message quoted-printable: ~A"
+                       html-message))
+              (rfc2045-q-encode-string-to-stream 
+               html-message stream :external-format external-format))
+            (write-to-smtp stream html-message))
+        (send-end-marker stream html-boundary)))
     ;;---------- Send Attachments -----------------------------------
     (when attachments
       (dolist (attachment attachments)

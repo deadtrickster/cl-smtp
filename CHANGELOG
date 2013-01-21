@@ -1,3 +1,10 @@
+Version 20130118
+2013.01.18
+Add string-has-non-ascii, rfc2045-q-encode-string-to-stream,
+to send quoted-printable messages
+Change write-rfc8822-message
+Change cl-smtp.lisp, tests.lisp, CHANGELOG
+
 Version 20100908.2
 2010.09.08
 Add write-rfc8822-message, to write a rfc8822 compatible mail.
