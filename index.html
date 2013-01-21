@@ -17,11 +17,7 @@
 
  <p>CL-SMTP is a simple lisp Networking Library that provides SMTP client protocol, supported LOGIN and PLAIN authentication methods.</p>
 
- <p><b>New Version</b> [20100621.1] Rewrite base64-encode-file in attachments.lisp, fixed wrap at column 
-and add #\Return#\Newline after each column, ignore keyword buffer-size.<br/>
-Fixed string-to-base64-string allegro part in cl-smtp.lisp (wrap-at-column nil).<br/>
-Fixed finish-smtp-mail in cl-smtp, not use fresh-line on stream, send #\Return#\Newline.
-Add test for base64-encode-file.</p>
+ <p><b>New Version</b> [20130121.1] Check message/html-message for non ascii characters and send message/html-message encoded quoted-printable when found non ascii characters.</p>
 
  <p><b>Documentation</b> see the README file.</p>
 
@@ -89,7 +85,7 @@ browse our CVS repository</a> or download the current development tree via
  </ul>
 
    <div class="footer">
-     <a href="mailto:jidzikowski (at) common-lisp (dot) net">Jan Idzikowski</a>, 21. Jun 2010.
+     <a href="mailto:jidzikowski (at) common-lisp (dot) net">Jan Idzikowski</a>, 21. Jan 2013.
    </div>
 
    <div class="check">
