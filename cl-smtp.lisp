@@ -186,7 +186,7 @@
                            :expected-response-code expected-response-code
                            :response-code code
                            :response-message msgstr))))
-    lines))
+    (append lines (list msgstr))))
 
 (defun do-with-smtp-mail (host envelope-sender to thunk &key port authentication ssl local-hostname (external-format :utf-8))
   (usocket:with-client-socket (socket stream host port 

@@ -1,3 +1,9 @@
+Version 20130306.1
+2013.03.06
+Fix smtp-command to return all lines from smtp server
+Thanks Jeff Cunningham for the bug report and test
+Change cl-smtp.asd, cl-smtp.lisp, CHANGELOG
+
 Version 20130121.1
 2013.01.21
 New version in cl-smtp.asd
