@@ -324,7 +324,8 @@
     (return-from smtp-handshake stream))
 
   ;; When SSL or authentication requested, perform ESMTP EHLO
-  (let (features)
+  (let ((features)
+        (flexi-external-format (flexi-streams:flexi-stream-external-format stream)))
     (labels
         ((read-greetings ()
 	   ;; Read the initial greeting from the SMTP server
@@ -343,9 +344,7 @@
            #-allegro
            (setf stream (flexi-streams:make-flexi-stream 
                          stream
-                         :external-format 
-                         (flexi-streams:make-external-format 
-                          :latin-1 :eol-style :lf)))))
+                         :external-format flexi-external-format))))
       (ecase ssl
         ((or t :starttls)
 	 (read-greetings)

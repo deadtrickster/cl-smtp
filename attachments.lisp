@@ -90,7 +90,7 @@
                      (write-char c s))
                    ((char= c #\Space)
                      (write-char #\+ s))
-                   (t (format s "%~2,'0x" (char-code c)))))))
+                   (t (format s "%~2,'0X" (char-code c)))))))
 
 (defun send-attachment-header (sock boundary attachment external-format)
   (let ((quoted-name

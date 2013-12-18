@@ -141,6 +141,9 @@ n !"
          (tmpstr (format nil "--~A~AContent-type: text/plain;~% name*=UTF-8''foo%5cbar;~% name=\"foo\\\\bar\"~AContent-Disposition: attachment; filename*=UTF-8''foo%5cbar; filename=\"foo\\\\bar\"~AContent-Transfer-Encoding: base64~A~A" 
                          boundary returnnewline returnnewline returnnewline 
                          returnnewline returnnewline)))
+        (print headerstr)
+    (print tmpstr)
+
     (assert (equal headerstr tmpstr))
     ))
 
