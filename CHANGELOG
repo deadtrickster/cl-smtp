@@ -1,3 +1,9 @@
+Version 20131218.1
+2013.12.18
+Add patch convert bare LF into CRLF in rfc2045-q-encode-string-to-stream
+Thanks Justin Megawarne  for the bug report and patch
+Change cl-smtp.asd, cl-smtp.lisp, CHANGELOG
+
 Version 20130822.1
 2013.08.22
 Add patch to use given external-format for ssl stream 

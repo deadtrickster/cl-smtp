@@ -111,7 +111,7 @@
          (cond
            ((char= c #\NewLine)
             (setf last-line-break n)
-            (write-char c stream))
+            (write-blank-line stream))
            ((or (char= c #\Space)
                 (char= c #\Tab))
             (if (char= nc #\NewLine)
