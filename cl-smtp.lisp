@@ -297,14 +297,15 @@
                                        (format nil "~A~C~A~C~A" 
                                                username
                                                #\null username
-                                               #\null password)))
+                                               #\null password)
+                                       :columns nil))
                        235))
         ((search " LOGIN" server-authentication :test #'equal)
          (smtp-command stream "AUTH LOGIN"
                        334)
-         (smtp-command stream (string-to-base64-string username)
+         (smtp-command stream (string-to-base64-string username :columns nil)
                        334)
-         (smtp-command stream (string-to-base64-string password)
+         (smtp-command stream (string-to-base64-string password :columns nil)
                        235))
         (t
          (error 'no-supported-authentication-method :features features))))))
