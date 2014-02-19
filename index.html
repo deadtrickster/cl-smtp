@@ -17,7 +17,7 @@
 
  <p>CL-SMTP is a simple lisp Networking Library that provides SMTP client protocol, supported LOGIN and PLAIN authentication methods.</p>
 
- <p><b>New Version</b> [20130121.1] Check message/html-message for non ascii characters and send message/html-message encoded quoted-printable when found non ascii characters.</p>
+ <p><b>New Version</b> [20140128.1] Check message/html-message for non ascii characters and send message/html-message encoded quoted-printable when found non ascii characters.</p>
 
  <p><b>Documentation</b> see the README file.</p>
 
@@ -29,8 +29,16 @@
 
    <p>You can <a
  href="http://common-lisp.net/cgi-bin/viewcvs.cgi/?cvsroot=cl-smtp">
-browse our CVS repository</a> or download the current development tree via
- anonymous cvs, as described <a href="/faq.shtml#checkout">here</a></p>
+browse our CVS repository</a>
+<br/> or download the current development tree via anonymous cvs:
+<br/>
+<pre>
+export CVSROOT=:pserver:anonymous@common-lisp.net:/project/cl-smtp/cvsroot
+cvs login 
+(Enter anonymous when prompted for the password)
+cvs checkout cl-smtp
+</pre>
+</p>
 
  <h3>Portability</h3>
 
@@ -72,6 +80,8 @@ browse our CVS repository</a> or download the current development tree via
    </tr>
  </table>
 
+<br/>
+<!--
  <h3>Mailing Lists</h3>
  <ul>
   <li>
@@ -83,9 +93,10 @@ browse our CVS repository</a> or download the current development tree via
     href="http://www.common-lisp.net/mailman/listinfo/cl-smtp-cvs">
     CL-SMTP-cvs</a><br/>CVS log feed.</li>
  </ul>
+-->
 
    <div class="footer">
-     <a href="mailto:jidzikowski (at) common-lisp (dot) net">Jan Idzikowski</a>, 21. Jan 2013.
+     <a href="mailto:jidzikowski (at) common-lisp (dot) net">Jan Idzikowski</a>, 19. Feb 2014.
    </div>
 
    <div class="check">
