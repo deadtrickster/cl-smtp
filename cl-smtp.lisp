@@ -61,7 +61,8 @@
   (let ((exformat (flex:make-external-format external-format)))
   #+allegro (excl:usb8-array-to-base64-string 
              (flex:string-to-octets str :external-format exformat)
-             :wrap-at-column columns)
+             :wrap-at-column (if (and (numberp columns) (= columns 0))
+                                  nil columns))
   #-allegro (cl-base64:usb8-array-to-base64-string 
              (flex:string-to-octets str :external-format exformat)
              :columns columns)))
@@ -298,14 +299,14 @@
                                                username
                                                #\null username
                                                #\null password)
-                                       :columns nil))
+                                       :columns 0))
                        235))
         ((search " LOGIN" server-authentication :test #'equal)
          (smtp-command stream "AUTH LOGIN"
                        334)
-         (smtp-command stream (string-to-base64-string username :columns nil)
+         (smtp-command stream (string-to-base64-string username :columns 0)
                        334)
-         (smtp-command stream (string-to-base64-string password :columns nil)
+         (smtp-command stream (string-to-base64-string password :columns 0)
                        235))
         (t
          (error 'no-supported-authentication-method :features features))))))

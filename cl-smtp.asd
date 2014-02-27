@@ -17,7 +17,7 @@
 ;;; Description: cl-smtp ASDF system definition file
 
 (asdf:defsystem :cl-smtp
-  :version "20140128.1"
+  :version "20140227.1"
   :perform (load-op :after (op webpage)
                     (pushnew :cl-smtp cl:*features*))
   :depends-on (:usocket 
