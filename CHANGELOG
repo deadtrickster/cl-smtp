@@ -1,3 +1,9 @@
+Version 20150521.1
+2015.05.21
+Add :license and :description in cl-smtp.asd and LICENSE file.
+Change cl-smtp.asd, CHANGELOG
+Add LICENSE
+
 Version 20140227.1
 2014.02.27
 Add patch for handle base64 string without newline after n columns.

@@ -17,7 +17,11 @@
 ;;; Description: cl-smtp ASDF system definition file
 
 (asdf:defsystem :cl-smtp
-  :version "20140227.1"
+  :description "Common Lisp smtp client."
+  :licence "LLGPL"
+  :author "Jan Idzikowski <jidzikowski@common-lisp.net>"
+  :maintainer "Jan Idzikowski <jidzikowski@common-lisp.net>"
+  :version "20150521.1"
   :perform (load-op :after (op webpage)
                     (pushnew :cl-smtp cl:*features*))
   :depends-on (:usocket 
