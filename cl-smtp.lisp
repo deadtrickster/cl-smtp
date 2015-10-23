@@ -69,10 +69,23 @@
 
 (defun rfc2045-q-encode-string (str &key (external-format :utf-8))
   (let ((line-has-non-ascii nil)
+        (last-line-break 0)
+        (len (length str))
         (exformat (flex:make-external-format external-format)))
     (with-output-to-string (s)
-      (loop for c across str do
+      (loop for c across str
+         for n from 0 to len
+         for column = (- n last-line-break)
+         do
+           (when (>= column 74)
+             (write-blank-line s)
+             (write-char #\Space s)
+             (setf last-line-break n))
            (cond
+             ((char= c #\NewLine)
+              (setf last-line-break n)
+              (write-blank-line s)
+              (write-char #\Space s))
              ((< 127 (char-code c))
               (unless line-has-non-ascii
                 (format s "=?~A?Q?" 
@@ -84,9 +97,10 @@
                  do (format s "~:@(=~2,'0X~)" byte)))
              (t 
               (when line-has-non-ascii
-                (format s "?=")
+                (write-sequence "?=" s)
                 (setf line-has-non-ascii nil))
-              (format s "~C" c))))
+              (unless (char= c #\Return)
+                (write-char c s)))))
       (when line-has-non-ascii
         (format s "?=")))))
 
@@ -115,7 +129,7 @@
             (write-blank-line stream))
            ((or (char= c #\Space)
                 (char= c #\Tab))
-            (if (char= nc #\NewLine)
+            (if (eq nc #\NewLine)
                 (format stream "~:@(=~2,'0X~)" (char-code c))
                 (write-char c stream)))
            ((or (< 127 (char-code c))
