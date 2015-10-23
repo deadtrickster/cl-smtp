@@ -33,28 +33,24 @@
     (error "the \"~A\" argument is not a string or cons" name))))
 
 (eval-when (:compile-toplevel :load-toplevel :execute)
-  (defvar *line-with-one-dot* #.(format nil "~C~C.~C~C" #\Return #\NewLine
-                                        #\Return #\NewLine))
-  (defvar *line-with-two-dots* #.(format nil "~C~C..~C~C" #\Return #\NewLine
-                                         #\Return #\NewLine))
   (defvar *return-newline* #.(format nil "~C~C" #\Return #\NewLine)))
 
 (defun mask-dot (str)
-  "Replace all occurences of \r\n.\r\n in STR with \r\n..\r\n"
-  (let ((resultstr ""))
-    (labels ((mask (tempstr)
-	       (let ((n (search *line-with-one-dot* tempstr)))
-		 (cond
-		  (n
-		   (setf resultstr (concatenate 'string resultstr 
-						(subseq tempstr 0 n)
-						*line-with-two-dots*))
-		   (mask (subseq tempstr (+ n #.(length *line-with-one-dot*)))))
-		  (t
-		   (setf resultstr (concatenate 'string resultstr 
-						tempstr)))))))
-      (mask str))
-    resultstr))
+   "Replace all occurences of single line #\. with #\.#\." 
+     (with-output-to-string (s)
+       (mask-dot-stream str s)))
+
+(defun mask-dot-stream (str stream)
+  "Replace all occurences of single line #\. with #\.#\."
+  (let ((l (length str)))
+    (loop for c across str
+       for i from 0
+       for pc = (when (> i 0) (elt str (1- i)))
+       for nc = (when (< (1+ i) l)  (elt str (1+ i)))
+       do (if (and (eq c #\.) (or (eq pc #\Newline) (not pc))
+                   (or (eq nc #\Return) (eq nc #\Newline) (not nc)))
+              (write-sequence ".." stream)
+              (write-char c stream)))))
 
 (defun string-to-base64-string (str &key (external-format :utf-8)
                                 (columns 80))
@@ -103,13 +99,17 @@
     (loop for c across str
           for n from 0 to len 
           for column = (- n last-line-break)
-          for nc = (when (< (+ n 1) len) (elt str (+ n 1)))
+          for nc = (when (< (1+ n) len) (elt str (1+ n)))
        do
          (when (>= column columns)
            (write-char #\= stream)
            (write-blank-line stream)
            (setf last-line-break n))
          (cond
+           ((and (char= c #\.) (or (= n 0) (= (1- n) last-line-break))
+                 (or (eq nc #\Return) (eq nc #\Newline) (not nc)))
+            (write-char #\. stream)
+            (write-char #\. stream))
            ((char= c #\NewLine)
             (setf last-line-break n)
             (write-blank-line stream))
@@ -513,7 +513,7 @@
                                message))
           (rfc2045-q-encode-string-to-stream message stream 
                                              :external-format external-format))
-        (write-to-smtp stream message))
+        (mask-dot-stream message stream))
     (write-blank-line stream)
     (write-blank-line stream)
     ;;---------- Send  Html text if needed -------------------------
@@ -532,7 +532,7 @@
                        html-message))
               (rfc2045-q-encode-string-to-stream 
                html-message stream :external-format external-format))
-            (write-to-smtp stream html-message))
+            (mask-dot-stream html-message stream))
         (send-end-marker stream html-boundary)))
     ;;---------- Send Attachments -----------------------------------
     (when attachments

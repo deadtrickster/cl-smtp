@@ -53,6 +53,14 @@ e schrieb, in Liebe und Ha=DF, als immerfort mitlebend zu behandel=
 n !"
 ))))
 
+(define-cl-smtp-test "rfc2045-q-encode-string-to-stream-5" ()
+  (let* ((str (format nil "check of masked dots.~C.~C.end" #\Newline #\Newline))
+         (qstr (with-output-to-string (s)
+                 (rfc2045-q-encode-string-to-stream 
+                  str s :external-format :latin-1 :columns 64))))
+    (assert qstr)
+    (assert (string-equal qstr (format nil "check of masked dots.~C~C..~C~C.end" #\Return #\Newline #\Return #\Newline)))))
+
 (define-cl-smtp-test "string-has-non-ascii-1" ()
   (assert (string-has-non-ascii "test Ü ende")))
 
@@ -138,12 +146,9 @@ n !"
          (headerstr (with-output-to-string (s)
                       (send-attachment-header s boundary attachment :utf-8)))
          (returnnewline (format nil (format nil "~C~C" #\Return #\NewLine)))
-         (tmpstr (format nil "--~A~AContent-type: text/plain;~% name*=UTF-8''foo%5cbar;~% name=\"foo\\\\bar\"~AContent-Disposition: attachment; filename*=UTF-8''foo%5cbar; filename=\"foo\\\\bar\"~AContent-Transfer-Encoding: base64~A~A" 
+         (tmpstr (format nil "--~A~AContent-type: text/plain;~% name*=UTF-8''foo%5Cbar;~% name=\"foo\\\\bar\"~AContent-Disposition: attachment; filename*=UTF-8''foo%5Cbar; filename=\"foo\\\\bar\"~AContent-Transfer-Encoding: base64~A~A" 
                          boundary returnnewline returnnewline returnnewline 
                          returnnewline returnnewline)))
-        (print headerstr)
-    (print tmpstr)
-
     (assert (equal headerstr tmpstr))
     ))
 
@@ -163,8 +168,12 @@ n !"
                          #\Return #\NewLine)))
   (assert (equal (mask-dot (format nil "~C.~C.~C.~C" #\Return #\NewLine
                                    #\Return #\NewLine))
-                 (format nil "~C.~C.~C.~C" #\Return #\NewLine
-                         #\Return #\NewLine))))
+                 (format nil "~C.~C..~C.~C" #\Return #\NewLine
+                         #\Return #\NewLine)))
+  (assert (equal (mask-dot (format nil "~C.~C" #\NewLine #\NewLine))
+                 (format nil "~C..~C"  #\NewLine #\NewLine)))
+  (assert (equal (mask-dot (format nil ".~C.~C" #\NewLine #\NewLine))
+                 (format nil "..~C..~C"  #\NewLine #\NewLine))))
 
 (define-cl-smtp-test "substitute-return-newline" ()
   (assert (equal (substitute-return-newline 
@@ -220,7 +229,7 @@ n !"
     (assert (string-equal (remove #\Return (remove #\Newline base64str1 :test #'equal) :test #'equal) base64str2))
     ))
 
-(defun run-test (name)
+(defun run-test (name &optional (catch-errors t))
   (handler-case
       (let ((test (gethash name *cl-smtp-tests*)))
         (format t "~%run test: ~S ~@[(~A)~]~%" name (cadr test))
@@ -228,16 +237,20 @@ n !"
         (format t "pass~%")
         t)
     (simple-error (c)
-      (format t "failed: ~A" c)
-      nil)))
+      (if catch-errors
+          (format t "failed: ~A" c)
+          (error c)))))
 
-(defun run-tests ()
+(defun run-tests (&optional (catch-errors t))
   (let ((n (hash-table-count *cl-smtp-tests*))
+        (failed '())
         (pass 0))
     (format t "~%run ~D cl-smtp-tests~%~%" (hash-table-count *cl-smtp-tests*))
     (maphash #'(lambda (k v)
                  (declare (ignore v))
-                 (when (run-test k)
-                   (incf pass)))
+                 (if (run-test k catch-errors)
+                     (incf pass)
+                     (push k failed)))
              *cl-smtp-tests*)
-    (format t "~%pass: ~D | failed: ~D~%~%" pass (- n pass))))
+    (format t "~%pass: ~D | failed: ~D~%test failed: ~{~A~^, ~}~%~%" 
+            pass (- n pass) failed)))

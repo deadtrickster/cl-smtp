@@ -1,3 +1,12 @@
+Version 20151023.1
+2015.10.23
+Fix error with single line with 1 dot
+Thanks Francesco Bracchi for the bug report and patch
+Add more tests for handle single line dot in mask-dot and
+in rfc2045-q-encode-string-to-stream
+Add optional argument CATCH-ERRORS to run-tests, default is T
+Change cl-smtp.asd, cl-smtp.lisp, tests.lisp CHANGELOG
+
 Version 20150521.1
 2015.05.21
 Add :license and :description in cl-smtp.asd and LICENSE file.
@@ -13,7 +22,7 @@ Change cl-smtp.asd, cl-smtp.lisp, CHANGELOG
 Version 20140128.1
 2014.01.28
 Add patch for converted username and password to  base64 string,
-ignore default wrap columns 80, so that no newline is inserted. 
+ignore default wrap columns 80, so that no newline is inserted.
 Thanks Helmut G. Enders for the bug report and patch
 Change cl-smtp.asd, cl-smtp.lisp, CHANGELOG
 
@@ -25,7 +34,7 @@ Change cl-smtp.asd, cl-smtp.lisp, CHANGELOG
 
 Version 20130822.1
 2013.08.22
-Add patch to use given external-format for ssl stream 
+Add patch to use given external-format for ssl stream
 Thanks Anton Vodonosov for the bug report and patch
 Change cl-smtp.asd, cl-smtp.lisp, CHANGELOG
 
