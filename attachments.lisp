@@ -92,7 +92,9 @@
                      (write-char #\+ s))
                    (t (format s "%~2,'0X" (char-code c)))))))
 
-(defun send-attachment-header (sock boundary attachment external-format)
+(defgeneric send-attachment-header (sock boundary attachment external-format))
+
+(defmethod send-attachment-header (sock boundary attachment external-format)
   (let ((quoted-name
          (escape-rfc822-quoted-string 
           (rfc2045-q-encode-string (attachment-name attachment) 
@@ -118,18 +120,40 @@
 (defclass attachment ()
   ((name :initarg :name
 	 :accessor attachment-name)
-   (data-pathname :initarg :data-pathname
-	 :accessor attachment-data-pathname)
    (mime-type :initarg :mime-type
-	      :accessor attachment-mime-type)))
+              :accessor attachment-mime-type)))
 
-(defun make-attachment (data-pathname
+(defclass file-attachment (attachment)
+  ((data-pathname :initarg :data-pathname
+                  :accessor attachment-data-pathname)))
+
+(defclass stream-attachment (attachment)
+  ((data-stream :initarg :data-stream
+                :accessor attachment-data-stream)))
+
+(defclass base64-attachment (attachment)
+  ((data-base64 :initarg :data-base64
+                :accessor attachment-data-base64)))
+
+(defun make-file-attachment (data-pathname
 			&key (name (file-namestring data-pathname))
 			     (mime-type (lookup-mime-type name)))
   (make-instance 'attachment
 		 :data-pathname data-pathname
 		 :name name
 		 :mime-type mime-type))
+
+(defun make-stream-attachment (name mime-type stream)
+  (make-instance 'stream-attachment
+                 :name name
+                 :mime-type mime-type
+                 :data-stream stream))
+
+(defun make-base64-attachment (name mime-type base64-data)
+  (make-instance 'base64-attachment
+                 :name name
+                 :mime-type mime-type
+                 :data-base64 base64-data))
 
 (defmethod attachment-name ((attachment pathname))
   (file-namestring attachment))
@@ -149,11 +173,35 @@
 (defmethod attachment-mime-type ((attachment string))
   (lookup-mime-type attachment))
 
-(defun send-attachment (sock attachment boundary buffer-size external-format)
+(defgeneric send-attachment (sock attachment boundary buffer-size external-format))
+
+(defmethod send-attachment :around (sock attachment boundary buffer-size external-format)
   (send-attachment-header sock boundary attachment external-format)
+  (call-next-method)
+  (force-output sock)
+  (write-blank-line sock))
+
+(defmethod send-attachment (sock (attachment file-attachment) boundary buffer-size external-format)
+  (declare (ignore boundary external-format))
   (base64-encode-file (attachment-data-pathname attachment)
-		      sock
-		      :buffer-size buffer-size))
+                      sock
+                      :buffer-size buffer-size))
+
+(defmethod send-attachment (sock (attachment pathname) boundary buffer-size external-format)
+  (declare (ignore boundary external-format))
+  (base64-encode-file (attachment-data-pathname attachment)
+                      sock
+                      :buffer-size buffer-size))
+
+(defmethod send-attachment (sock (attachment stream-attachment) boundary buffer-size external-format)
+  (declare (ignore boundary external-format))
+  (base64-encode-stream (attachment-data-stream attachment)
+                        sock
+                        :buffer-size buffer-size))
+
+(defmethod send-attachment (sock (attachment base64-attachment) boundary buffer-size external-format)
+  (declare (ignore boundary buffer-size external-format))
+  (write-string (attachment-data-base64 attachment) sock))
 
 (defun base64-encode-file (file-in sock
                                    &key 
@@ -165,38 +213,46 @@
    Buffer-size is ignored
 
    Wrap-at-column controls where the encode string is divided for line breaks, 
-   it is always set to a multiple of 3." 
+   it is always set to a multiple of 3."
   (declare (ignore buffer-size))
   (when (probe-file file-in)
     ;;-- open filein ---------
     (print-debug (format nil "base64-encode-file ~A" file-in))
     (with-open-file (strm-in file-in
                              :element-type '(unsigned-byte 8))
-      (let* ((flength (file-length strm-in))
-             (columns (* (truncate (/ wrap-at-column 3)) 3))
-             (r 0)
-             (n 0))
-        (loop while (< (file-position strm-in) flength)
-           for buffer = (make-array  3
-                                     :element-type '(unsigned-byte 8))
-           do
-           (loop for i from 0 to 2 do
-                (let ((bchar (read-byte strm-in nil 'EOF)))
-                  (if (eql bchar 'EOF)
-                      (progn
-                        (setf r i)
-                        (return))
-                      (setf (aref buffer i) bchar))))
-           #+allegro 
-           (write-sequence (excl:usb8-array-to-base64-string 
-                            (if (> r 0) (subseq buffer 0 r) buffer) :wrap-at-column nil)
-                           sock)
-           #-allegro 
-           (cl-base64:usb8-array-to-base64-stream 
-            (if (> r 0) (subseq buffer 0 r) buffer) sock :columns 0)
-           (incf n 3)
-           (when (= (mod n columns) 0)
-             (setf n 0)
-             (write-blank-line sock)))
-        (force-output sock)
-        (write-blank-line sock)))))
+      (print-debug (format nil "base64-encode-file ~A" file-in))
+      (base64-encode-stream strm-in sock :slength (file-length strm-in)
+                                         :wrap-at-column wrap-at-column))))
+
+(defun base64-encode-stream (strm-in sock
+                                     &key
+                                   (buffer-size 256) ;; in KB
+                                   (wrap-at-column 76))
+  (declare (ignore buffer-size)
+           (optimize (speed 3) (debug 0) (safety 0)))
+  (let* ((columns (* (truncate (/ wrap-at-column 3)) 3))
+         (r 3)
+         (n 0)
+         (buffer (make-array  3
+                              :element-type '(unsigned-byte 8))))
+    (declare (type (unsigned-byte 32) columns r n))
+    (loop while (= r 3)
+          do
+             (loop for i from 0 to 2 do
+                      (let ((bchar (read-byte strm-in nil 'EOF)))
+                        (if (eql bchar 'EOF)
+                            (progn
+                              (setf r i)
+                              (return))
+                            (setf (aref buffer i) bchar))))
+             #+allegro
+             (write-sequence (excl:usb8-array-to-base64-string
+                              (if (> r 0) (subseq buffer 0 r) buffer) :wrap-at-column nil)
+                             sock)
+             #-allegro
+             (cl-base64:usb8-array-to-base64-stream
+              (if (> r 0) (subseq buffer 0 r) buffer) sock :columns 0)
+             (incf n 3)
+             (when (= (mod n columns) 0)
+               (setf n 0)
+               (write-blank-line sock)))))
