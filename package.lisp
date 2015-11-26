@@ -1,5 +1,5 @@
 ;;; -*- mode: Lisp -*-
-       
+
 ;;; This file is part of CL-SMTP, the Lisp SMTP Client
 
 ;;; Copyright (C) 2004/2005/2006/2007 Jan Idzikowski
@@ -27,11 +27,18 @@
            "NO-SUPPORTED-AUTHENTICATION-METHOD"
            "RCPT-FAILED"
            "IGNORE-RECIPIENT"
-	   "ATTACHMENT"
-	   "MAKE-ATTACHMENT"
-	   "ATTACHMENT-NAME"
-	   "ATTACHMENT-DATA-PATHNAME"
-	   "ATTACHMENT-MIME-TYPE"
+           "ATTACHMENT"
+           "FILE-ATTACHMENT"
+           "STREAM-ATTACHMENT"
+           "BASE64-ATTACHMENT"
+           "MAKE-FILE-ATTACHMENT"
+           "MAKE-STREAM-ATTACHMENT"
+           "MAKE-BASE64-ATTACHMENT"
+           "ATTACHMENT-NAME"
+           "ATTACHMENT-DATA-PATHNAME"
+           "ATTACHMENT-DATA-STREAM"
+           "ATTACHMENT-DATA-BASE64"
+           "ATTACHMENT-MIME-TYPE"
            "RFC2045-Q-ENCODE-STRING"
            "RFC2231-ENCODE-STRING"
            "WRITE-RFC8822-MESSAGE"))
@@ -42,5 +49,4 @@
 
 (defmacro print-debug (str)
   `(when *debug*
-      (print ,str)))
-
+     (print ,str)))
