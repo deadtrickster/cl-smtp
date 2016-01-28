@@ -138,7 +138,7 @@
 (defun make-file-attachment (data-pathname
 			&key (name (file-namestring data-pathname))
 			     (mime-type (lookup-mime-type name)))
-  (make-instance 'attachment
+  (make-instance 'file-attachment
 		 :data-pathname data-pathname
 		 :name name
 		 :mime-type mime-type))
