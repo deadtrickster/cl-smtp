@@ -395,9 +395,10 @@
    If any of the TO addresses is not accepted, a RCPT-FAILED condition
    is signalled.  This condition may be handled by the caller in order
    to send the email anyway."
-  (smtp-command stream 
-                (format nil "MAIL FROM:<~A>" (substitute-return-newline envelope-sender))
-                250)
+  (let ((from (cl-mail:mail-address.new (substitute-return-newline envelope-sender))))
+    (smtp-command stream
+                  (format nil "MAIL FROM:<~A>" (cl-mail:mail-address-address from))
+                  250))
   (dolist (address to)
     (restart-case 
         (smtp-command stream (format nil "RCPT TO:<~A>" 
@@ -426,10 +427,11 @@
    previously accepted the DATA SMTP command."
   (write-to-smtp stream (format nil "Date: ~A" (get-email-date-string)))
   (if display-name
-      (write-to-smtp stream (format nil "From: ~A <~A>" 
-                                    (rfc2045-q-encode-string 
-                                     display-name :external-format external-format)
-                                    from))
+      (let ((from (cl-mail:mail-address.new (substitute-return-newline from))))
+        (write-to-smtp stream (format nil "From: ~A <~A>"
+                                      (rfc2045-q-encode-string
+                                       display-name :external-format external-format)
+                                      (cl-mail:mail-address-address from))))
       (write-to-smtp stream (format nil "From: ~A" from)))
   (write-to-smtp stream (format nil "To: ~{ ~a~^,~}" to))
   (when cc

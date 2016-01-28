@@ -27,6 +27,7 @@
   :depends-on (:usocket 
                :trivial-gray-streams
                :flexi-streams
+               :cl-mail
                #-allegro :cl-base64 
                #-allegro :cl+ssl)
   :serial t
