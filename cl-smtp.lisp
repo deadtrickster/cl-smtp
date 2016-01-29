@@ -443,9 +443,11 @@
 				(rfc2045-q-encode-string 
                                  *x-mailer* :external-format external-format)))
   (when reply-to
-    (write-to-smtp stream (format nil "Reply-To: ~A" 
-                                  (rfc2045-q-encode-string 
-                                   reply-to :external-format external-format))))
+    (let ((address (cl-mail:mail-address.new (substitute-return-newline reply-to))))
+      (write-to-smtp stream (format nil "Reply-To: ~A <~A>"
+                                    (rfc2045-q-encode-string
+                                     (cl-mail:mail-address-display-name address) :external-format external-format)
+                                    (cl-mail:mail-address-address address)))))
   (when (and extra-headers
 	     (listp extra-headers))
     (dolist (l extra-headers)
