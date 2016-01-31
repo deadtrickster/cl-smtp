@@ -445,8 +445,10 @@
   (when reply-to
     (let ((address (cl-mail:mail-address.new (substitute-return-newline reply-to))))
       (write-to-smtp stream (format nil "Reply-To: ~A <~A>"
-                                    (rfc2045-q-encode-string
-                                     (cl-mail:mail-address-display-name address) :external-format external-format)
+                                    (if (cl-mail:mail-address-display-name address)
+                                        (rfc2045-q-encode-string
+                                         (cl-mail:mail-address-display-name address) :external-format external-format)
+                                        "")
                                     (cl-mail:mail-address-address address)))))
   (when (and extra-headers
 	     (listp extra-headers))
