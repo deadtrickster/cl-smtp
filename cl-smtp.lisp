@@ -400,13 +400,14 @@
                   (format nil "MAIL FROM:<~A>" (cl-mail:mail-address-address from))
                   250))
   (dolist (address to)
-    (restart-case 
-        (smtp-command stream (format nil "RCPT TO:<~A>" 
-                                     (substitute-return-newline address))
-                      250
-                      :condition-class 'rcpt-failed
-                      :condition-arguments (list :recipient address))
-      (ignore-recipient ())))
+    (dolist (parsed-address (cl-mail:mail-address.parse address))
+      (restart-case
+          (smtp-command stream (format nil "RCPT TO:<~A>"
+                                       (substitute-return-newline (cl-mail:mail-address-address parsed-address)))
+                        250
+                        :condition-class 'rcpt-failed
+                        :condition-arguments (list :recipient address))
+        (ignore-recipient ()))))
   (smtp-command stream "DATA"
                 354))
 
